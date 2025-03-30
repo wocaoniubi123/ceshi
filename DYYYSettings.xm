@@ -1073,6 +1073,12 @@ static AWESettingSectionModel* createSection(NSString* title, NSArray* items) {
                     // 为双击菜单选项添加特殊处理
                     if ([item.identifier isEqualToString:@"DYYYEnableDoubleOpenAlertController"]) {
                         item.cellTappedBlock = ^{
+                            // 检查是否启用了双击打开评论功能
+                            BOOL isEnableDoubleOpenComment = getUserDefaults(@"DYYYEnableDoubleOpenComment");
+                            if (isEnableDoubleOpenComment) {
+                                return;
+                            }
+                            
                             NSMutableArray<AWESettingItemModel *> *doubleTapItems = [NSMutableArray array];
                             AWESettingItemModel *enableDoubleTapMenu = [self createSettingItem:@{
                                 @"identifier": @"DYYYEnableDoubleOpenAlertController", 
@@ -1558,6 +1564,9 @@ static AWESettingSectionModel* createSection(NSString* title, NSArray* items) {
         [self updateDependentItemsForSetting:identifier value:@(isEnabled)];
     }
     else if ([identifier isEqualToString:@"DYYYEnableDoubleOpenComment"]) {
+        // 不论是开启还是关闭，都需要更新相关依赖项状态
+        [self updateDependentItemsForSetting:identifier value:@(isEnabled)];
+        
         if (isEnabled) {
             // 如果启用双击打开评论，禁用双击打开菜单
             setUserDefaults(@(NO), @"DYYYEnableDoubleOpenAlertController");
@@ -1565,6 +1574,9 @@ static AWESettingSectionModel* createSection(NSString* title, NSArray* items) {
         }
     }
     else if ([identifier isEqualToString:@"DYYYEnableDoubleOpenAlertController"]) {
+        // 不论是开启还是关闭，都需要更新相关依赖项状态
+        [self updateDependentItemsForSetting:identifier value:@(isEnabled)];
+        
         if (isEnabled) {
             // 如果启用双击打开菜单，禁用双击打开评论
             setUserDefaults(@(NO), @"DYYYEnableDoubleOpenComment");
@@ -1626,18 +1638,16 @@ static AWESettingSectionModel* createSection(NSString* title, NSArray* items) {
                     }
                 }
             }
-            else if ([identifier isEqualToString:@"DYYYEnableDoubleOpenAlertController"] && 
-                     [item.identifier isEqualToString:@"DYYYEnableDoubleOpenComment"]) {
-                item.isEnable = ![value boolValue];
-                if ([value boolValue]) {
-                    item.isSwitchOn = NO;
+            else if ([identifier isEqualToString:@"DYYYEnableDoubleOpenComment"]) {
+                if ([item.identifier isEqualToString:@"DYYYEnableDoubleOpenAlertController"]) {
+                    // 如果"双击打开评论"被禁用，则启用"双击打开菜单"选项
+                    item.isEnable = ![value boolValue];
                 }
             }
-            else if ([identifier isEqualToString:@"DYYYEnableDoubleOpenComment"] && 
-                     [item.identifier isEqualToString:@"DYYYEnableDoubleOpenAlertController"]) {
-                item.isEnable = ![value boolValue];
-                if ([value boolValue]) {
-                    item.isSwitchOn = NO;
+            else if ([identifier isEqualToString:@"DYYYEnableDoubleOpenAlertController"]) {
+                if ([item.identifier isEqualToString:@"DYYYEnableDoubleOpenComment"]) {
+                    // 如果"双击打开菜单"被禁用，则启用"双击打开评论"选项
+                    item.isEnable = ![value boolValue];
                 }
             }
             // 新增更新逻辑
