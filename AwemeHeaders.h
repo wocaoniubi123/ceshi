@@ -365,11 +365,6 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @property (nonatomic, assign, getter=isHidden) BOOL hidden;
 @end
 
-@interface AWEFeedAnchorContainerView : UIView
-@property (nonatomic, strong, readonly) UIView *superview;
-@property (nonatomic, assign, getter=isHidden) BOOL hidden;
-@end
-
 @interface AWEIMMessageTabOptPushBannerView : UIView
 @property (nonatomic, strong, readonly) UIView *superview;
 @property (nonatomic, assign, getter=isHidden) BOOL hidden;
@@ -576,9 +571,6 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @end
 
 @interface AWEUserNameLabel : UIView
-@end
-
-@interface AWEHPTopTabItemBadgeContentView : UIView
 @end
 
 @interface AWEPlayInteractionDescriptionLabel : UILabel

@@ -1181,18 +1181,66 @@
 
 %end
 
-//隐藏拍同款
-%hook AWEFeedAnchorContainerView
+//按关键词隐藏昵称上方容器
+%hook AWEFeedTemplateAnchorView
 
-- (BOOL)isHidden {
-    BOOL origHidden = %orig; 
-    BOOL hideSamestyle = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideFeedAnchorContainer"];
-    return origHidden || hideSamestyle;
+%new
+// 核心过滤逻辑
+- (void)filterContentIfNeeded {
+    // 读取用户设置
+    NSString *filterKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYAnchorKeywords"];
+    
+    // 空值检查
+    if (!filterKeywords || filterKeywords.length == 0) return;
+    
+    // 处理特殊关键词 "All"
+    if ([filterKeywords containsString:@"All"]) {
+        [self.superview removeFromSuperview];
+        return;
+    }
+    
+    // 分割关键词
+    NSArray *keywords = [filterKeywords componentsSeparatedByString:@","];
+    
+    // 递归检查关键词
+    __block BOOL shouldRemove = NO;
+    [keywords enumerateObjectsUsingBlock:^(NSString *keyword, NSUInteger idx, BOOL *stop) {
+        if ([self checkIfContainsKeyword:[keyword stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]] 
+                                  inView:self] ) {
+            shouldRemove = YES;
+            *stop = YES;
+        }
+    }];
+    
+    // 5. 执行删除操作
+    if (shouldRemove) {
+        [self.superview removeFromSuperview];
+    }
 }
 
-- (void)setHidden:(BOOL)hidden {
-    BOOL forceHide = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideFeedAnchorContainer"];
-    %orig(forceHide ? YES : hidden); 
+%new
+// 递归检查方法
+- (BOOL)checkIfContainsKeyword:(NSString *)keyword inView:(UIView *)view {
+    if (keyword.length == 0) return NO;
+    
+    if ([view isKindOfClass:%c(UILabel)]) {
+        UILabel *label = (UILabel *)view;
+        if (label.text && [label.text containsString:keyword]) {
+            return YES;
+        }
+    }
+    
+    for (UIView *subview in view.subviews) {
+        if ([self checkIfContainsKeyword:keyword inView:subview]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+- (void)didMoveToSuperview {
+    %orig;
+    [self filterContentIfNeeded];
 }
 
 %end
@@ -2053,18 +2101,6 @@
 
 %end
 
-%hook AWEFeedTemplateAnchorView
-
-- (void)layoutSubviews {
-    %orig;
-
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideLocation"]) {
-        [self removeFromSuperview];
-        return;
-    }
-}
-
-%end
 
 %hook AWEPlayInteractionSearchAnchorView
 
