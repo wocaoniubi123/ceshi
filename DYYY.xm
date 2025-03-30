@@ -3148,12 +3148,13 @@ static BOOL isDownloadFlied = NO;
 }
 %end
 
-%hook AWEConcernSkylightCapsuleView
+%hook AWEConcernSkylightCapsuleView  //移除关注xx个直播
 - (void)setHidden:(BOOL)hidden {
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideConcernCapsuleView"]) {
-        hidden = YES;
+        [self removeFromSuperview];
+        return;
     }
-
+    
     %orig(hidden);
 }
 %end
