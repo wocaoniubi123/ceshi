@@ -575,7 +575,7 @@ static AWESettingSectionModel* createSection(NSString* title, NSArray* items) {
                     @{@"identifier": @"DYYYNoAds", @"title": @"启用屏蔽广告", @"detail": @"", @"cellType": @6, @"imageName": @"ic_ad_outlined_20"},
                     @{@"identifier": @"DYYYNoUpdates", @"title": @"屏蔽检测更新", @"detail": @"", @"cellType": @6, @"imageName": @"ic_circletop_outlined"},
                     @{@"identifier": @"DYYYHideteenmode", @"title": @"屏蔽青少年模式弹窗", @"detail": @"", @"cellType": @6, @"imageName": @"ic_personcircleclean_outlined_20"},
-                    @{@"identifier": @"DYYYAnchorKeywords", @"title": @"屏蔽昵称上方容器", @"detail": @"", @"cellType": @6, @"imageName": @"ic_ad_outlined_20"}
+                    @{@"identifier": @"DYYYAnchorKeywords", @"title": @"屏蔽昵称上方容器", @"detail": @"", @"cellType": @26, @"imageName": @"ic_ad_outlined_20"}
                 ];
                 
                 for (NSDictionary *dict in filterSettings) {
@@ -647,9 +647,9 @@ static AWESettingSectionModel* createSection(NSString* title, NSArray* items) {
                         NSString *savedValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYAnchorKeywords"];
                         item.detail = savedValue ?: @"";
                         item.cellTappedBlock = ^{
-                            showTextInputAlert(@"设置按钮过滤关键词", item.detail, @"用,分隔 如:剪映,拍同款 填All全部过滤", ^(NSString *text) {
+                            showTextInputAlert(@"设置按钮过滤关键词", item.detail, @"用,分隔 如:剪映 填All全过滤", ^(NSString *text) {
                                 NSString *trimmedText = [text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-                                setUserDefaults(trimmedText, @"DYYYfilterKeywords");
+                                setUserDefaults(trimmedText, @"DYYYAnchorKeywords");
                                 item.detail = trimmedText ?: @"";
                                 UIViewController *topVC = topView();
                                 if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
