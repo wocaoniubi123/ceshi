@@ -595,3 +595,5 @@ typedef NS_ENUM(NSInteger, MediaType) {
 //直播发现
 @interface AWEFeedLiveTabRevisitControlView : UIView
 @end
+
+static BOOL checkViewHierarchyForAuthorDeclaration(UIView *view);
