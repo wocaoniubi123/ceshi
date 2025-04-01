@@ -2311,8 +2311,49 @@
         }
     }
 }
-
 %end
+
+//隐藏昵称右侧标签
+%hook UILabel 
+- (void)layoutSubviews {
+    %orig;
+    
+    BOOL hideRightLabel = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideRightLable"];
+    if (!hideRightLabel) return; 
+    
+    NSString *accessibilityLabel = self.accessibilityLabel;
+    if (!accessibilityLabel || accessibilityLabel.length == 0) return; 
+    
+    NSString *trimmedLabel = [accessibilityLabel stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]]; 
+    
+    BOOL shouldHide = NO;
+    
+    // 1. 隐藏所有 "X人共创"
+    NSRegularExpression *coCreationRegex = [NSRegularExpression 
+        regularExpressionWithPattern:@"^\\d+人共创$" 
+        options:0 
+        error:nil];
+    shouldHide = [coCreationRegex firstMatchInString:trimmedLabel 
+        options:0 
+        range:NSMakeRange(0, trimmedLabel.length)];
+    
+    // 2. 隐藏 "章节要点"
+    if (!shouldHide) {
+        shouldHide = [trimmedLabel isEqualToString:@"章节要点"];
+    }
+    
+    // 3. 隐藏 "图集"
+    if (!shouldHide) {
+        shouldHide = [trimmedLabel isEqualToString:@"图集"];
+    }
+    
+    if (shouldHide) {
+        self.hidden = YES;
+        [self removeFromSuperview];
+    }
+}
+%end 
+ 
 
 %hook AWETemplateHotspotView
 
