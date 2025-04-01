@@ -1323,39 +1323,6 @@ BOOL forceHide = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideFee
 
 %end
 
-//隐藏视频合集
-%hook AWEAntiAddictedNoticeBarView
-- (void)layoutSubviews {
-    %orig;
-    
-    // 查找子视图中的UILabel
-    BOOL isTemplateVideo = NO;
-    
-    for (UIView *subview in self.subviews) {
-        if ([subview isKindOfClass:%c(UILabel)]) {
-            UILabel *label = (UILabel *)subview;
-            NSString *labelText = label.text;
-            
-            // 检查文本内容
-            if (labelText) {
-                // 包含"合集"的是模板视频
-                if ([labelText containsString:@"合集"]) {
-                    isTemplateVideo = YES;
-                    break;
-                }
-            }
-        }
-    }
-    
-    // 根据判断结果应用相应的开关
-    if (isTemplateVideo) {
-        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideTemplateVideo"]) {
-            [self setHidden:YES];
-        }
-    }
-}
-%end
-
 //隐藏作者声明
 %hook AWEBaseElementView
 - (void)layoutSubviews {
@@ -1394,24 +1361,44 @@ BOOL forceHide = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideFee
         }
     }
     
-    // 检查子视图（到第三层）
+    // 检查子视图（递归到所有子视图，但限制递归深度）
     if (view.subviews.count > 0) {
         for (UIView *subview in view.subviews) {
             [self findAuthorDeclarationInView:subview result:result];
+            if (*result) return; // 如果找到了，提前返回
+        }
+    }
+}
+%end
+
+//隐藏视频合集
+%hook AWEAntiAddictedNoticeBarView
+- (void)layoutSubviews {
+    %orig;
+    
+    // 查找子视图中的UILabel
+    BOOL isTemplateVideo = NO;
+    
+    for (UIView *subview in self.subviews) {
+        if ([subview isKindOfClass:%c(UILabel)]) {
+            UILabel *label = (UILabel *)subview;
+            NSString *labelText = label.text;
             
-            // 检查子视图的子视图
-            if (subview.subviews.count > 0) {
-                for (UIView *subsubview in subview.subviews) {
-                    [self findAuthorDeclarationInView:subsubview result:result];
-                    
-                    // 检查第三层子视图
-                    if (subsubview.subviews.count > 0) {
-                        for (UIView *subsubsubview in subsubview.subviews) {
-                            [self findAuthorDeclarationInView:subsubsubview result:result];
-                        }
-                    }
+            // 检查文本内容
+            if (labelText) {
+                // 包含"合集"的是模板视频
+                if ([labelText containsString:@"合集"]) {
+                    isTemplateVideo = YES;
+                    break;
                 }
             }
+        }
+    }
+    
+    // 根据判断结果应用相应的开关
+    if (isTemplateVideo) {
+        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideTemplateVideo"]) {
+            [self setHidden:YES];
         }
     }
 }
