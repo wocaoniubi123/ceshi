@@ -1336,37 +1336,57 @@ BOOL forceHide = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideFee
     // 检查是否包含作者声明
     BOOL hasAuthorDeclaration = NO;
     
-    // 递归搜索视图层次
-    [self findAuthorDeclarationInView:self result:&hasAuthorDeclaration];
+    // 递归检查视图层次结构中是否有包含"作者声明"的文本
+    // 不使用递归方法调用，而是使用内联代码
+    for (UIView *subview in self.subviews) {
+        // 检查子视图是否有text属性
+        if ([subview respondsToSelector:@selector(text)]) {
+            NSString *text = [subview performSelector:@selector(text)];
+            if ([text isKindOfClass:[NSString class]] && 
+                ([text containsString:@"作者声明"] || 
+                 [text containsString:@"author declaration"] || 
+                 [text containsString:@"Author"])) {
+                hasAuthorDeclaration = YES;
+                break;
+            }
+        }
+        
+        // 检查子视图的子视图
+        for (UIView *subsubview in subview.subviews) {
+            if ([subsubview respondsToSelector:@selector(text)]) {
+                NSString *text = [subsubview performSelector:@selector(text)];
+                if ([text isKindOfClass:[NSString class]] && 
+                    ([text containsString:@"作者声明"] || 
+                     [text containsString:@"author declaration"] || 
+                     [text containsString:@"Author"])) {
+                    hasAuthorDeclaration = YES;
+                    break;
+                }
+            }
+            
+            // 检查孙子视图
+            for (UIView *subsubsubview in subsubview.subviews) {
+                if ([subsubsubview respondsToSelector:@selector(text)]) {
+                    NSString *text = [subsubsubview performSelector:@selector(text)];
+                    if ([text isKindOfClass:[NSString class]] && 
+                        ([text containsString:@"作者声明"] || 
+                         [text containsString:@"author declaration"] || 
+                         [text containsString:@"Author"])) {
+                        hasAuthorDeclaration = YES;
+                        break;
+                    }
+                }
+            }
+            
+            if (hasAuthorDeclaration) break;
+        }
+        
+        if (hasAuthorDeclaration) break;
+    }
     
     // 如果找到了作者声明，则隐藏整个视图
     if (hasAuthorDeclaration) {
         self.hidden = YES;
-    }
-}
-%new
-- (void)findAuthorDeclarationInView:(UIView *)view result:(BOOL *)result {
-    // 如果已经找到了，直接返回
-    if (*result) return;
-    
-    // 检查当前视图是否有text属性
-    if ([view respondsToSelector:@selector(text)]) {
-        NSString *text = [view performSelector:@selector(text)];
-        if ([text isKindOfClass:[NSString class]] && 
-            ([text containsString:@"作者声明"] || 
-             [text containsString:@"author declaration"] || 
-             [text containsString:@"Author"]) ) {
-            *result = YES;
-            return;
-        }
-    }
-    
-    // 检查子视图（递归到所有子视图，但限制递归深度）
-    if (view.subviews.count > 0) {
-        for (UIView *subview in view.subviews) {
-            [self findAuthorDeclarationInView:subview result:result];
-            if (*result) return; // 如果找到了，提前返回
-        }
     }
 }
 %end
