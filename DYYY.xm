@@ -1437,12 +1437,12 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
     // 根据判断结果应用相应的开关
     if (isAntiAddictedNotice) {
         if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideAntiAddictedNotice"]) {
-            [self setHidden:YES];
+            [self removeFromSuperview];
         }
     }
     else if (isTemplateVideo) {
         if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideTemplateVideo"]) {
-            [self setHidden:YES];
+            [self removeFromSuperview];
         }
     }
 }
