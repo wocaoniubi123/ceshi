@@ -496,7 +496,6 @@ static void showUserAgreementAlert() {
                     @{@"identifier": @"DYYYProgressLabelColor", @"title": @"进度标签颜色", @"detail": @"十六进制", @"cellType": @26, @"imageName": @"ic_playertime_outlined_20"},
                     @{@"identifier": @"DYYYTimelineVerticalPosition", @"title": @"进度纵轴位置", @"detail": @"-12.5", @"cellType": @26, @"imageName": @"ic_playertime_outlined_20"},
                     @{@"identifier": @"DYYYHideVideoProgress", @"title": @"隐藏视频进度", @"detail": @"", @"cellType": @6, @"imageName": @"ic_playertime_outlined_20"},
-                    @{@"identifier": @"DYYYisEnableAutoPlay", @"title": @"启用自动播放", @"detail": @"", @"cellType": @6, @"imageName": @"ic_play_outlined_12"},
                     @{@"identifier": @"DYYYDefaultSpeed", @"title": @"设置默认倍速", @"detail": @"", @"cellType": @26, @"imageName": @"ic_speed_outlined_20"},
                     @{@"identifier": @"DYYYisEnableArea", @"title": @"时间属地显示", @"detail": @"", @"cellType": @6, @"imageName": @"ic_location_outlined_20"},
                     @{@"identifier": @"DYYYLabelColor", @"title": @"属地标签颜色", @"detail": @"十六进制", @"cellType": @26, @"imageName": @"ic_location_outlined_20"}
