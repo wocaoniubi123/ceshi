@@ -220,7 +220,7 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @end
 
 @interface AWENormalModeTabBar : UIView
-@property (nonatomic, assign, readonly) UITabBarController *yy_viewController;
+
 @end
 
 @interface AWEPlayInteractionListenFeedView : UIView
