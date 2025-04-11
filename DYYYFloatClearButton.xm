@@ -78,6 +78,16 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     if (!button || !button.isElementsHidden) return;
     [button hideUIElements];
 }
+@interface HideUIButton : UIButton
+@property (nonatomic, assign) BOOL isElementsHidden;
+@property (nonatomic, strong) NSMutableArray *hiddenViewsList;
+@property (nonatomic, strong) UIImage *showIcon;
+@property (nonatomic, strong) UIImage *hideIcon;
+@property (nonatomic, strong) NSTimer *checkTimer;
+@property (nonatomic, strong) NSTimer *fadeTimer;
+@property (nonatomic, assign) CGFloat originalAlpha;
+- (void)resetFadeTimer;
+@end
 @implementation HideUIButton
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
@@ -88,6 +98,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         
         _isElementsHidden = NO;
         _hiddenViewsList = [NSMutableArray array];
+        _originalAlpha = 1.0;
         
         [self loadIcons];
         [self setImage:self.showIcon forState:UIControlStateNormal];
@@ -96,14 +107,44 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         [self addGestureRecognizer:panGesture];
         
         [self addTarget:self action:@selector(handleTap) forControlEvents:UIControlEventTouchUpInside];
+        [self addTarget:self action:@selector(handleTouchDown) forControlEvents:UIControlEventTouchDown];
+        [self addTarget:self action:@selector(handleTouchUpInside) forControlEvents:UIControlEventTouchUpInside];
+        [self addTarget:self action:@selector(handleTouchUpOutside) forControlEvents:UIControlEventTouchUpOutside];
         
         UILongPressGestureRecognizer *longPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
         [self addGestureRecognizer:longPressGesture];
         
         [self startPeriodicCheck];
+        [self resetFadeTimer];
     }
     return self;
 }
+- (void)resetFadeTimer {
+    [self.fadeTimer invalidate];
+    self.fadeTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 
+                                                    repeats:NO 
+                                                      block:^(NSTimer *timer) {
+        [UIView animateWithDuration:0.3 animations:^{
+            self.alpha = 0.5;
+        }];
+    }];
+    
+    if (self.alpha != self.originalAlpha) {
+        [UIView animateWithDuration:0.2 animations:^{
+            self.alpha = self.originalAlpha;
+        }];
+    }
+}
+- (void)handleTouchDown {
+    [self resetFadeTimer];
+}
+- (void)handleTouchUpInside {
+    [self resetFadeTimer];
+}
+- (void)handleTouchUpOutside {
+    [self resetFadeTimer];
+}
+
 - (void)startPeriodicCheck {
     [self.checkTimer invalidate];
     self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 
@@ -131,6 +172,8 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     }
 }
 - (void)handlePan:(UIPanGestureRecognizer *)gesture {
+    [self resetFadeTimer];
+    
     CGPoint translation = [gesture translationInView:self.superview];
     CGPoint newCenter = CGPointMake(self.center.x + translation.x, self.center.y + translation.y);
     
@@ -148,6 +191,8 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 - (void)handleTap {
     if (isAppInTransition) return;
     
+    [self resetFadeTimer];
+    
     if (!self.isElementsHidden) {
         [self hideUIElements];
         self.selected = YES;
@@ -160,6 +205,8 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 }
 - (void)handleLongPress:(UILongPressGestureRecognizer *)gesture {
     if (gesture.state == UIGestureRecognizerStateBegan) {
+        [self resetFadeTimer];
+        
         UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"设置" message:nil preferredStyle:UIAlertControllerStyleActionSheet];
         
         BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
@@ -183,7 +230,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         [topViewController presentViewController:alertController animated:YES completion:nil];
     }
 }
-
 - (void)hideUIElements {
     [self.hiddenViewsList removeAllObjects];
     [self findAndHideViews:targetClassNames];
@@ -215,10 +261,12 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 }
 - (void)dealloc {
     [self.checkTimer invalidate];
+    [self.fadeTimer invalidate];
     self.checkTimer = nil;
+    self.fadeTimer = nil;
 }
 @end
-// 在视图创建时就进行隐藏
+// Hook 实现部分
 %hook UIView
 - (id)initWithFrame:(CGRect)frame {
     UIView *view = %orig;
@@ -339,7 +387,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     BOOL result = %orig;
     
-    // 初始化目标类名数组
     initTargetClassNames();
     
     BOOL isEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYEnableFloatClearButton"];
