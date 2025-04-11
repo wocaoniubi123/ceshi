@@ -18,14 +18,6 @@ static void findViewsOfClassHelper(UIView *view, Class viewClass, NSMutableArray
         findViewsOfClassHelper(subview, viewClass, result);
     }
 }
-// 定义悬浮按钮类
-@interface HideUIButton : UIButton
-@property (nonatomic, assign) BOOL isElementsHidden;
-@property (nonatomic, strong) NSMutableArray *hiddenViewsList;
-@property (nonatomic, strong) UIImage *showIcon;
-@property (nonatomic, strong) UIImage *hideIcon;
-@property (nonatomic, strong) NSTimer *checkTimer;
-@end
 // 全局变量
 static HideUIButton *hideButton;
 static BOOL isAppInTransition = NO;
@@ -40,7 +32,7 @@ static UIWindow* getKeyWindow() {
     }
     return keyWindow;
 }
-// 恢复所有元素到原始状态的方法 - 重置方法
+// 恢复所有元素到原始状态的方法
 static void forceResetAllUIElements() {
     UIWindow *window = getKeyWindow();
     if (!window) return;
@@ -117,10 +109,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     return self;
 }
 - (void)startPeriodicCheck {
-    // 停止现有的定时器
     [self.checkTimer invalidate];
-    
-    // 创建新的定时器
     self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 
                                                      repeats:YES 
                                                        block:^(NSTimer *timer) {
@@ -253,7 +242,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     self.checkTimer = nil;
 }
 @end
-// Hook 视频 Cell 的复用
 %hook AWEFeedTableViewCell
 - (void)prepareForReuse {
     %orig;
@@ -264,7 +252,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     }
 }
 %end
-// Hook 内容更新
 %hook AWEFeedViewCell
 - (void)setModel:(id)model {
     %orig;
@@ -275,7 +262,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     }
 }
 %end
-// Hook 视图控制器
 %hook UIViewController
 - (void)viewWillAppear:(BOOL)animated {
     %orig;
@@ -306,7 +292,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     });
 }
 %end
-// Hook 视频切换
 %hook AWEFeedContainerViewController
 - (void)aweme:(id)arg1 currentIndexDidChange:(NSInteger)arg2 {
     %orig;
@@ -330,7 +315,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     }
 }
 %end
-// Hook AppDelegate
 %hook AppDelegate
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     BOOL result = %orig;
