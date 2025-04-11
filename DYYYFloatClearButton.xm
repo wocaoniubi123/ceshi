@@ -22,6 +22,7 @@ static void findViewsOfClassHelper(UIView *view, Class viewClass, NSMutableArray
 @interface HideUIButton : UIButton
 @property (nonatomic, assign) BOOL isElementsHidden;
 @property (nonatomic, strong) NSMutableArray *hiddenViewsList;
+@property (nonatomic, strong) UIImage *buttonImage;
 @property (nonatomic, assign) BOOL isGlobalMode; // 是否全局生效
 @end
 // 全局变量
@@ -39,11 +40,6 @@ static UIWindow* getKeyWindow() {
         }
     }
     return keyWindow;
-}
-// 获取抖音文档目录
-static NSString* getDYDocumentsPath() {
-    NSArray *paths = [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
-    return [paths.firstObject path];
 }
 // 恢复所有元素到原始状态的方法 - 重置方法
 static void forceResetAllUIElements() {
@@ -87,13 +83,18 @@ static void forceResetAllUIElements() {
         }
     }
 }
+// 获取抖音应用的文档目录
+static NSString* getDouyinDocumentsPath() {
+    NSArray *paths = [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
+    return [paths.firstObject path];
+}
 // HideUIButton 实现
 @implementation HideUIButton
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
         // 基本设置
-        self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5]; // 半透明黑色背景
+        self.backgroundColor = [UIColor clearColor]; // 透明背景，只显示图标
         self.layer.cornerRadius = frame.size.width / 2;
         self.layer.masksToBounds = YES;
         
@@ -101,11 +102,11 @@ static void forceResetAllUIElements() {
         _isElementsHidden = NO;
         _hiddenViewsList = [NSMutableArray array];
         
-        // 从用户默认设置中读取全局模式状态
+        // 从UserDefaults加载全局模式设置
         _isGlobalMode = [[NSUserDefaults standardUserDefaults] boolForKey:globalModeKey];
         
         // 加载按钮图标
-        [self loadIcons];
+        [self loadCustomImage];
         
         // 添加拖动手势
         UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
@@ -116,32 +117,27 @@ static void forceResetAllUIElements() {
         
         // 添加长按手势
         UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
-        longPress.minimumPressDuration = 0.5; // 0.5秒长按
+        longPress.minimumPressDuration = 0.5;
         [self addGestureRecognizer:longPress];
         
-        // 从上次保存的位置恢复
+        // 恢复上次位置
         [self restoreLastPosition];
     }
     return self;
 }
-- (void)loadIcons {
-    // 尝试从文档目录加载自定义图标
-    NSString *customIconPath = [getDYDocumentsPath() stringByAppendingPathComponent:@"Qingping.png"];
-    UIImage *customIcon = nil;
+- (void)loadCustomImage {
+    // 尝试从Documents目录加载自定义图片
+    NSString *documentsPath = getDouyinDocumentsPath();
+    NSString *imagePath = [documentsPath stringByAppendingPathComponent:@"Qingping.png"];
     
-    if ([[NSFileManager defaultManager] fileExistsAtPath:customIconPath]) {
-        customIcon = [UIImage imageWithContentsOfFile:customIconPath];
-    }
-    
-    if (customIcon) {
-        // 使用自定义图标
-        [self setImage:customIcon forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor clearColor]; // 透明背景
+    if ([[NSFileManager defaultManager] fileExistsAtPath:imagePath]) {
+        self.buttonImage = [UIImage imageWithContentsOfFile:imagePath];
+        [self setImage:self.buttonImage forState:UIControlStateNormal];
     } else {
-        // 没有自定义图标，使用文本
-        self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5]; //self setTitle:self.isElementsHidden ? @"显示" : @"隐藏" forState:UIControlStateNormal];
+        // 如果没有自定义图片，使用文本
+        [self setTitle:self.isElementsHidden ? @"显示" : @"隐藏" forState:UIControlStateNormal];
         [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-        self.titleLabel.font = [UIFont systemFontOfSize:12];
+        self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5];
     }
 }
 - (void)saveLastPosition {
@@ -150,13 +146,11 @@ static void forceResetAllUIElements() {
         @"x": @(center.x),
         @"y": @(center.y)
     };
-    
     [[NSUserDefaults standardUserDefaults] setObject:positionDict forKey:lastButtonPositionKey];
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 - (void)restoreLastPosition {
     NSDictionary *positionDict = [[NSUserDefaults standardUserDefaults] objectForKey:lastButtonPositionKey];
-    
     if (positionDict) {
         CGFloat x = [positionDict[@"x"] floatValue];
         CGFloat y = [positionDict[@"y"] floatValue];
@@ -165,7 +159,7 @@ static void forceResetAllUIElements() {
         // 默认位置：屏幕右侧中心
         CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
         CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-        self.center = CGPointMake(screenWidth - 30, screenHeight / 2);
+        self.center = CGPointMake(screenWidth - 35, screenHeight / 2);
     }
 }
 - (void)handlePan:(UIPanGestureRecognizer *)gesture {
@@ -179,41 +173,9 @@ static void forceResetAllUIElements() {
     self.center = newCenter;
     [gesture setTranslation:CGPointZero inView:self.superview];
     
-    // 拖动结束时保存位置
     if (gesture.state == UIGestureRecognizerStateEnded) {
         [self saveLastPosition];
     }
-}
-- (void)handleLongPress:(UILongPressGestureRecognizer *)gesture {
-    if (gesture.state == UIGestureRecognizerStateBegan) {
-        [self showMenu];
-    }
-}
-- (void)showMenu {
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"设置"
-                                                                             message:nil
-                                                                      preferredStyle:UIAlertControllerStyleActionSheet];
-    
-    // 添加全局模式选项
-    NSString *globalModeTitle = self.isGlobalMode ? @"切换到单视频模式" : @"切换到全局模式";
-    UIAlertAction *globalModeAction = [UIAlertAction actionWithTitle:globalModeTitle
-                                                               style:UIAlertActionStyleDefault
-                                                             handler:^(UIAlertAction * _Nonnull action) {
-        self.isGlobalMode = !self.isGlobalMode;
-        [[NSUserDefaults standardUserDefaults] setBool:self.isGlobalMode forKey:globalModeKey];
-        [[NSUserDefaults standardUserDefaults] synchronize];
-    }];
-    [alertController addAction:globalModeAction];
-    
-    // 添加取消选项
-    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"取消"
-                                                           style:UIAlertActionStyleCancel
-                                                         handler:nil];
-    [alertController addAction:cancelAction];
-    
-    // 显示菜单
-    UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
-    [rootViewController presentViewController:alertController animated:YES completion:nil];
 }
 - (void)handleTap {
     if (isAppInTransition) {
@@ -223,30 +185,61 @@ static void forceResetAllUIElements() {
     if (!self.isElementsHidden) {
         // 隐藏UI元素
         [self hideUIElements];
-        [self updateButtonAppearance];
+        if (!self.buttonImage) {
+            [self setTitle:@"显示" forState:UIControlStateNormal];
+        }
     } else {
         // 直接强制恢复所有UI元素
         forceResetAllUIElements();
         self.isElementsHidden = NO;
         [self.hiddenViewsList removeAllObjects];
-        [self updateButtonAppearance];
+        if (!self.buttonImage) {
+            [self setTitle:@"隐藏" forState:UIControlStateNormal];
+        }
     }
 }
-- (void)updateButtonAppearance {
-    // 检查是否有自定义图标
-    NSString *customIconPath = [getDYDocumentsPath() stringByAppendingPathComponent:@"Qingping.png"];
-    
-    if ([[NSFileManager defaultManager] fileExistsAtPath:customIconPath]) {
-        // 使用自定义图标，不需要更改
-    } else {
-        // 使用文本，需要更新
-        [self setTitle:self.isElementsHidden ? @"显示" : @"隐藏" forState:UIControlStateNormal];
+- (void)handleLongPress:(UILongPressGestureRecognizer *)gesture {
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        [self showOptionsMenu];
     }
+}
+- (void)showOptionsMenu {
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"设置"
+                                                                             message:nil
+                                                                      preferredStyle:UIAlertControllerStyleActionSheet];
+    
+    // 切换全局/单视频模式
+    NSString *modeTitle = self.isGlobalMode ? @"切换到单视频模式" : @"切换到全局模式";
+    UIAlertAction *toggleModeAction = [UIAlertAction actionWithTitle:modeTitle
+                                                               style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * _Nonnull action) {
+        self.isGlobalMode = !self.isGlobalMode;
+        [[NSUserDefaults standardUserDefaults] setBool:self.isGlobalMode forKey:globalModeKey];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+    }];
+    
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"取消"
+                                                           style:UIAlertActionStyleCancel
+                                                         handler:nil];
+    
+    [alertController addAction:toggleModeAction];
+    [alertController addAction:cancelAction];
+    
+    // 获取当前的UIViewController
+    UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    while (topController.presentedViewController) {
+        topController = topController.presentedViewController;
+    }
+    
+    // 在iPad上需要设置弹出位置
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        alertController.popoverPresentationController.sourceView = self;
+        alertController.popoverPresentationController.sourceRect = self.bounds;
+    }
+    
+    [topController presentViewController:alertController animated:YES completion:nil];
 }
 - (void)hideUIElements {
-    // 先强制结束所有已存在的视图，确保不会复用
-    forceResetAllUIElements();
-    
     NSArray *viewClassStrings = @[
         @"AWEHPTopBarCTAContainer",
         @"AWEHPDiscoverFeedEntranceView",
@@ -302,7 +295,9 @@ static void forceResetAllUIElements() {
     // 重置状态
     self.isElementsHidden = NO;
     [self.hiddenViewsList removeAllObjects];
-    [self updateButtonAppearance];
+    if (!self.buttonImage) {
+        [self setTitle:@"隐藏" forState:UIControlStateNormal];
+    }
 }
 @end
 // 监控视图转换状态
@@ -320,7 +315,7 @@ static void forceResetAllUIElements() {
     isAppInTransition = YES;
     
     if (hideButton && hideButton.isElementsHidden && !hideButton.isGlobalMode) {
-        // 如果是单视频模式，视图即将消失时重置状态
+        // 如果视图即将消失，且不是全局模式，重置状态
         dispatch_async(dispatch_get_main_queue(), ^{
             [hideButton safeResetState];
         });
@@ -331,13 +326,13 @@ static void forceResetAllUIElements() {
     });
 }
 %end
-// 监控视频滑动
-%hook AWEFeedTableViewController
-- (void)tableView:(UITableView *)tableView didEndDisplayingCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+// 监听视频滑动切换事件
+%hook AWEFeedContainerViewController
+- (void)aweme:(id)arg1 currentIndexDidChange:(NSInteger)arg2 {
     %orig;
     
-    // 如果是单视频模式，视频滑动时重置状态
     if (hideButton && hideButton.isElementsHidden && !hideButton.isGlobalMode) {
+        // 如果不是全局模式，在视频切换时恢复UI
         dispatch_async(dispatch_get_main_queue(), ^{
             [hideButton safeResetState];
         });
@@ -349,24 +344,21 @@ static void forceResetAllUIElements() {
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     BOOL result = %orig;
     
-    // 检查是否启用功能
-    BOOL isEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYEnableFloatClearButton"];
-    
-    if (isEnabled) {
-        // 立即创建按钮，不延迟
-        hideButton = [[HideUIButton alloc] initWithFrame:CGRectMake(0, 0, 50, 50)];
-        // 位置会在初始化时从上次保存的位置恢复
+    // 立即创建按钮，不延迟
+    dispatch_async(dispatch_get_main_queue(), ^{
+        CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
+        CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
         
-        UIWindow *keyWindow = getKeyWindow();
-        if (keyWindow) {
-            [keyWindow addSubview:hideButton];
-        } else {
-            // 如果keyWindow还没准备好，稍微延迟添加
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                [getKeyWindow() addSubview:hideButton];
-            });
+        // 检查是否已经存在按钮
+        if (hideButton) {
+            [hideButton removeFromSuperview];
+            hideButton = nil;
         }
-    }
+        
+        hideButton = [[HideUIButton alloc] initWithFrame:CGRectMake(0, 0, 50, 50)];
+        
+        [getKeyWindow() addSubview:hideButton];
+    });
     
     return result;
 }
