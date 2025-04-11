@@ -93,7 +93,7 @@ static void forceResetAllUIElements() {
     self = [super initWithFrame:frame];
     if (self) {
         // 基本设置
-        self.backgroundColor = [UIColor clearColor]; // 透明背景，只显示图标
+        self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5]; // 半透明黑色背景
         self.layer.cornerRadius = frame.size.width / 2;
         self.layer.masksToBounds = YES;
         
@@ -136,10 +136,10 @@ static void forceResetAllUIElements() {
     if (customIcon) {
         // 使用自定义图标
         [self setImage:customIcon forState:UIControlStateNormal];
+        self.backgroundColor = [UIColor clearColor]; // 透明背景
     } else {
         // 没有自定义图标，使用文本
-        self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5]; // 半透明黑色背景
-        [self setTitle:self.isElementsHidden ? @"显示" : @"隐藏" forState:UIControlStateNormal];
+        self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5]; //self setTitle:self.isElementsHidden ? @"显示" : @"隐藏" forState:UIControlStateNormal];
         [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         self.titleLabel.font = [UIFont systemFontOfSize:12];
     }
@@ -349,21 +349,23 @@ static void forceResetAllUIElements() {
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     BOOL result = %orig;
     
-    // 立即创建按钮，不延迟
-    CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
-    CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
+    // 检查是否启用功能
+    BOOL isEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYEnableFloatClearButton"];
     
-    hideButton = [[HideUIButton alloc] initWithFrame:CGRectMake(0, 0, 50, 50)];
-    // 位置会在初始化时从上次保存的位置恢复
-    
-    UIWindow *keyWindow = getKeyWindow();
-    if (keyWindow) {
-        [keyWindow addSubview:hideButton];
-    } else {
-        // 如果keyWindow还没准备好，稍微延迟添加
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [getKeyWindow() addSubview:hideButton];
-        });
+    if (isEnabled) {
+        // 立即创建按钮，不延迟
+        hideButton = [[HideUIButton alloc] initWithFrame:CGRectMake(0, 0, 50, 50)];
+        // 位置会在初始化时从上次保存的位置恢复
+        
+        UIWindow *keyWindow = getKeyWindow();
+        if (keyWindow) {
+            [keyWindow addSubview:hideButton];
+        } else {
+            // 如果keyWindow还没准备好，稍微延迟添加
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [getKeyWindow() addSubview:hideButton];
+            });
+        }
     }
     
     return result;
