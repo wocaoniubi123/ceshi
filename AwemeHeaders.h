@@ -657,14 +657,15 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @interface AWEHPTopBarCTAItemView : UIView
 @end
 
-// 定义悬浮按钮类
 @interface HideUIButton : UIButton
 @property (nonatomic, assign) BOOL isElementsHidden;
 @property (nonatomic, strong) NSMutableArray *hiddenViewsList;
 @property (nonatomic, strong) UIImage *showIcon;
 @property (nonatomic, strong) UIImage *hideIcon;
 @property (nonatomic, strong) NSTimer *checkTimer;
-// 添加方法声明
+@property (nonatomic, strong) NSTimer *fadeTimer;
+@property (nonatomic, assign) CGFloat originalAlpha;
+- (void)resetFadeTimer;
 - (void)hideUIElements;
 - (void)findAndHideViews:(NSArray *)classNames;
 - (void)safeResetState;
