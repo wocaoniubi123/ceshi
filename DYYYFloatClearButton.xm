@@ -21,23 +21,10 @@ static void findViewsOfClassHelper(UIView *view, Class viewClass, NSMutableArray
 // 全局变量
 static HideUIButton *hideButton;
 static BOOL isAppInTransition = NO;
-// 获取keyWindow的辅助方法
-static UIWindow* getKeyWindow() {
-    UIWindow *keyWindow = nil;
-    for (UIWindow *window in [UIApplication sharedApplication].windows) {
-        if (window.isKeyWindow) {
-            keyWindow = window;
-            break;
-        }
-    }
-    return keyWindow;
-}
-// 恢复所有元素到原始状态的方法
-static void forceResetAllUIElements() {
-    UIWindow *window = getKeyWindow();
-    if (!window) return;
-    
-    NSArray *viewClassStrings = @[
+static NSArray *targetClassNames;
+// 初始化目标类名数组
+static void initTargetClassNames() {
+    targetClassNames = @[
         @"AWEHPTopBarCTAContainer",
         @"AWEHPDiscoverFeedEntranceView",
         @"AWELeftSideBarEntranceView",
@@ -57,8 +44,24 @@ static void forceResetAllUIElements() {
         @"AWEFeedAnchorContainerView",
         @"AFDAIbumFolioView"
     ];
+}
+// 获取keyWindow的辅助方法
+static UIWindow* getKeyWindow() {
+    UIWindow *keyWindow = nil;
+    for (UIWindow *window in [UIApplication sharedApplication].windows) {
+        if (window.isKeyWindow) {
+            keyWindow = window;
+            break;
+        }
+    }
+    return keyWindow;
+}
+// 恢复所有元素到原始状态的方法
+static void forceResetAllUIElements() {
+    UIWindow *window = getKeyWindow();
+    if (!window) return;
     
-    for (NSString *className in viewClassStrings) {
+    for (NSString *className in targetClassNames) {
         Class viewClass = NSClassFromString(className);
         if (!viewClass) continue;
         
@@ -66,18 +69,14 @@ static void forceResetAllUIElements() {
         findViewsOfClassHelper(window, viewClass, views);
         
         for (UIView *view in views) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                view.alpha = 1.0;
-            });
+            view.alpha = 1.0;
         }
     }
 }
-// 重新应用隐藏效果的函数，移除延迟
+// 重新应用隐藏效果的函数
 static void reapplyHidingToAllElements(HideUIButton *button) {
     if (!button || !button.isElementsHidden) return;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [button hideUIElements];
-    });
+    [button hideUIElements];
 }
 @implementation HideUIButton
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -107,7 +106,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 }
 - (void)startPeriodicCheck {
     [self.checkTimer invalidate];
-    self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 
+    self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 
                                                      repeats:YES 
                                                        block:^(NSTimer *timer) {
         if (self.isElementsHidden) {
@@ -184,30 +183,10 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         [topViewController presentViewController:alertController animated:YES completion:nil];
     }
 }
+
 - (void)hideUIElements {
-    NSArray *viewClassStrings = @[
-        @"AWEHPTopBarCTAContainer",
-        @"AWEHPDiscoverFeedEntranceView",
-        @"AWELeftSideBarEntranceView",
-        @"DUXBadge",
-        @"AWEBaseElementView",
-        @"AWEElementStackView",
-        @"AWEPlayInteractionDescriptionLabel",
-        @"AWEUserNameLabel",
-        @"AWEStoryProgressSlideView",
-        @"AWEStoryProgressContainerView",
-        @"ACCEditTagStickerView",
-        @"AWEFeedTemplateAnchorView",
-        @"AWESearchFeedTagView",
-        @"AWEPlayInteractionSearchAnchorView",
-        @"AFDRecommendToFriendTagView",
-        @"AWELandscapeFeedEntryView",
-        @"AWEFeedAnchorContainerView",
-        @"AFDAIbumFolioView"
-    ];
-    
     [self.hiddenViewsList removeAllObjects];
-    [self findAndHideViews:viewClassStrings];
+    [self findAndHideViews:targetClassNames];
     self.isElementsHidden = YES;
 }
 - (void)findAndHideViews:(NSArray *)classNames {
@@ -239,14 +218,51 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     self.checkTimer = nil;
 }
 @end
+// 在视图创建时就进行隐藏
+%hook UIView
+- (id)initWithFrame:(CGRect)frame {
+    UIView *view = %orig;
+    if (hideButton && hideButton.isElementsHidden) {
+        for (NSString *className in targetClassNames) {
+            if ([view isKindOfClass:NSClassFromString(className)]) {
+                view.alpha = 0.0;
+                break;
+            }
+        }
+    }
+    return view;
+}
+- (void)didAddSubview:(UIView *)subview {
+    %orig;
+    if (hideButton && hideButton.isElementsHidden) {
+        for (NSString *className in targetClassNames) {
+            if ([subview isKindOfClass:NSClassFromString(className)]) {
+                subview.alpha = 0.0;
+                break;
+            }
+        }
+    }
+}
+- (void)willMoveToSuperview:(UIView *)newSuperview {
+    %orig;
+    if (hideButton && hideButton.isElementsHidden) {
+        for (NSString *className in targetClassNames) {
+            if ([self isKindOfClass:NSClassFromString(className)]) {
+                self.alpha = 0.0;
+                break;
+            }
+        }
+    }
+}
+%end
 %hook AWEFeedTableViewCell
 - (void)prepareForReuse {
-    %orig;
     if (hideButton && hideButton.isElementsHidden) {
         [hideButton hideUIElements];
     }
+    %orig;
 }
-- (void)willDisplayCell {
+- (void)layoutSubviews {
     %orig;
     if (hideButton && hideButton.isElementsHidden) {
         [hideButton hideUIElements];
@@ -254,17 +270,17 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 }
 %end
 %hook AWEFeedViewCell
-- (void)setModel:(id)model {
-    %orig;
+- (void)layoutSubviews {
     if (hideButton && hideButton.isElementsHidden) {
         [hideButton hideUIElements];
     }
+    %orig;
 }
-- (void)willDisplayCell {
-    %orig;
+- (void)setModel:(id)model {
     if (hideButton && hideButton.isElementsHidden) {
         [hideButton hideUIElements];
     }
+    %orig;
 }
 %end
 %hook UIViewController
@@ -295,6 +311,12 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 }
 %end
 %hook AWEFeedContainerViewController
+- (void)aweme:(id)arg1 currentIndexWillChange:(NSInteger)arg2 {
+    if (hideButton && hideButton.isElementsHidden) {
+        [hideButton hideUIElements];
+    }
+    %orig;
+}
 - (void)aweme:(id)arg1 currentIndexDidChange:(NSInteger)arg2 {
     if (hideButton && hideButton.isElementsHidden) {
         BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
@@ -316,6 +338,9 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 %hook AppDelegate
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     BOOL result = %orig;
+    
+    // 初始化目标类名数组
+    initTargetClassNames();
     
     BOOL isEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYEnableFloatClearButton"];
     
@@ -349,7 +374,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     return result;
 }
 %end
-
 %ctor {
     signal(SIGSEGV, SIG_IGN);
 }
