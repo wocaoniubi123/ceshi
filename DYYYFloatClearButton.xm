@@ -78,6 +78,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     if (!button || !button.isElementsHidden) return;
     [button hideUIElements];
 }
+
 @implementation HideUIButton
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
@@ -109,14 +110,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     }
     return self;
 }
-// ... 其余实现代码保持不变 ...
-@end
-// ... Hook 实现部分保持不变 ...
-%ctor {
-    signal(SIGSEGV, SIG_IGN);
-}
-
-@implementation HideUIButton 
 - (void)startPeriodicCheck {
     [self.checkTimer invalidate];
     self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 
@@ -264,7 +257,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 }
 @end
 
-// Hook 实现部分
+// Hook 部分
 %hook UIView
 - (id)initWithFrame:(CGRect)frame {
     UIView *view = %orig;
