@@ -665,9 +665,16 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @property (nonatomic, strong) NSTimer *checkTimer;
 @property (nonatomic, strong) NSTimer *fadeTimer;
 @property (nonatomic, assign) CGFloat originalAlpha;
+- (void)loadIcons;
 - (void)resetFadeTimer;
 - (void)hideUIElements;
 - (void)findAndHideViews:(NSArray *)classNames;
 - (void)safeResetState;
 - (void)startPeriodicCheck;
+- (void)handleTouchDown;
+- (void)handleTouchUpInside;
+- (void)handleTouchUpOutside;
+- (void)handlePan:(UIPanGestureRecognizer *)gesture;
+- (void)handleTap;
+- (void)handleLongPress:(UILongPressGestureRecognizer *)gesture;
 @end
