@@ -78,16 +78,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     if (!button || !button.isElementsHidden) return;
     [button hideUIElements];
 }
-@interface HideUIButton : UIButton
-@property (nonatomic, assign) BOOL isElementsHidden;
-@property (nonatomic, strong) NSMutableArray *hiddenViewsList;
-@property (nonatomic, strong) UIImage *showIcon;
-@property (nonatomic, strong) UIImage *hideIcon;
-@property (nonatomic, strong) NSTimer *checkTimer;
-@property (nonatomic, strong) NSTimer *fadeTimer;
-@property (nonatomic, assign) CGFloat originalAlpha;
-- (void)resetFadeTimer;
-@end
 @implementation HideUIButton
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
@@ -96,9 +86,9 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         self.layer.cornerRadius = frame.size.width / 2;
         self.layer.masksToBounds = YES;
         
-        _isElementsHidden = NO;
-        _hiddenViewsList = [NSMutableArray array];
-        _originalAlpha = 1.0;
+        self.isElementsHidden = NO;
+        self.hiddenViewsList = [NSMutableArray array];
+        self.originalAlpha = 1.0;
         
         [self loadIcons];
         [self setImage:self.showIcon forState:UIControlStateNormal];
@@ -119,6 +109,27 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     }
     return self;
 }
+// ... 其余实现代码保持不变 ...
+@end
+// ... Hook 实现部分保持不变 ...
+%ctor {
+    signal(SIGSEGV, SIG_IGN);
+}
+
+@implementation HideUIButton 
+- (void)startPeriodicCheck {
+    [self.checkTimer invalidate];
+    self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 
+                                                     repeats:YES 
+                                                       block:^(NSTimer *timer) {
+        if (self.isElementsHidden) {
+            BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
+            if (isGlobalEffect) {
+                [self hideUIElements];
+            }
+        }
+    }];
+}
 - (void)resetFadeTimer {
     [self.fadeTimer invalidate];
     self.fadeTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 
@@ -135,29 +146,6 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         }];
     }
 }
-- (void)handleTouchDown {
-    [self resetFadeTimer];
-}
-- (void)handleTouchUpInside {
-    [self resetFadeTimer];
-}
-- (void)handleTouchUpOutside {
-    [self resetFadeTimer];
-}
-
-- (void)startPeriodicCheck {
-    [self.checkTimer invalidate];
-    self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 
-                                                     repeats:YES 
-                                                       block:^(NSTimer *timer) {
-        if (self.isElementsHidden) {
-            BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
-            if (isGlobalEffect) {
-                [self hideUIElements];
-            }
-        }
-    }];
-}
 - (void)loadIcons {
     NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
     NSString *iconPath = [documentsPath stringByAppendingPathComponent:@"Qingping.png"];
@@ -170,6 +158,15 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         [self setTitle:@"显示" forState:UIControlStateNormal];
         [self setTitle:@"隐藏" forState:UIControlStateSelected];
     }
+}
+- (void)handleTouchDown {
+    [self resetFadeTimer];
+}
+- (void)handleTouchUpInside {
+    [self resetFadeTimer];
+}
+- (void)handleTouchUpOutside {
+    [self resetFadeTimer];
 }
 - (void)handlePan:(UIPanGestureRecognizer *)gesture {
     [self resetFadeTimer];
@@ -266,6 +263,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     self.fadeTimer = nil;
 }
 @end
+
 // Hook 实现部分
 %hook UIView
 - (id)initWithFrame:(CGRect)frame {
