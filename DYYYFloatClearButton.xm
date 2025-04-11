@@ -22,15 +22,13 @@ static void findViewsOfClassHelper(UIView *view, Class viewClass, NSMutableArray
 @interface HideUIButton : UIButton
 @property (nonatomic, assign) BOOL isElementsHidden;
 @property (nonatomic, strong) NSMutableArray *hiddenViewsList;
-@property (nonatomic, strong) UIImage *buttonImage;
-@property (nonatomic, assign) NSTimeInterval lastInteractionTime;
-@property (nonatomic, strong) NSTimer *fadeTimer;
+@property (nonatomic, strong) UIImage *showIcon;
+@property (nonatomic, strong) UIImage *hideIcon;
+- (void)hideUIElements;
 @end
 // 全局变量
 static HideUIButton *hideButton;
 static BOOL isAppInTransition = NO;
-static NSString *lastButtonPositionKey = @"HideUIButtonPosition";
-static NSString *globalEffectKey = @"GlobalEffect";
 // 获取keyWindow的辅助方法
 static UIWindow* getKeyWindow() {
     UIWindow *keyWindow = nil;
@@ -84,16 +82,7 @@ static void forceResetAllUIElements() {
         }
     }
 }
-// 重新隐藏所有元素的方法 - 用于处理视图复用问题
-static void reapplyHidingToAllElements(HideUIButton *button) {
-    if (!button || !button.isElementsHidden) return;
-    
-    // 先恢复所有元素
-    forceResetAllUIElements();
-    
-    // 然后重新隐藏
-    [button hideUIElements];
-}
+
 // HideUIButton 实现
 @implementation HideUIButton
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -107,10 +96,12 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         // 初始化属性
         _isElementsHidden = NO;
         _hiddenViewsList = [NSMutableArray array];
-        _lastInteractionTime = [[NSDate date] timeIntervalSince1970];
         
         // 加载按钮图标
-        [self loadCustomImage];
+        [self loadIcons];
+        
+        // 设置初始图标
+        [self setImage:self.showIcon forState:UIControlStateNormal];
         
         // 添加拖动手势
         UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
@@ -120,67 +111,37 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         [self addTarget:self action:@selector(handleTap) forControlEvents:UIControlEventTouchUpInside];
         
         // 添加长按手势
-        UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
-        longPress.minimumPressDuration = 0.5;
-        [self addGestureRecognizer:longPress];
+        UILongPressGestureRecognizer *longPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+        [self addGestureRecognizer:longPressGesture];
         
-        // 启动自动半透明计时器
-        [self startFadeTimer];
+        // 设置自动半透明
+        [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(fadeToTransparent) userInfo:nil repeats:NO];
     }
     return self;
 }
-- (void)dealloc {
-    [self.fadeTimer invalidate];
-    self.fadeTimer = nil;
-}
-- (void)loadCustomImage {
-    // 尝试从Documents目录加载自定义图片
-    NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *imagePath = [documentsPath stringByAppendingPathComponent:@"Qingping.png"];
-    
-    if ([[NSFileManager defaultManager] fileExistsAtPath:imagePath]) {
-        self.buttonImage = [UIImage imageWithContentsOfFile:imagePath];
-        [self setImage:self.buttonImage forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor clearColor];
-    } else {
-        // 如果没有自定义图片，使用文本
-        [self setTitle:self.isElementsHidden ? @"显示" : @"隐藏" forState:UIControlStateNormal];
-        [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5];
-    }
-}
-- (void)startFadeTimer {
-    // 取消现有计时器
-    [self.fadeTimer invalidate];
-    
-    // 创建新计时器，每0.5秒检查一次
-    self.fadeTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 
-                                                     target:self 
-                                                   selector:@selector(checkForFade) 
-                                                   userInfo:nil 
-                                                    repeats:YES];
-}
-- (void)checkForFade {
-    NSTimeInterval currentTime = [[NSDate date] timeIntervalSince1970];
-    NSTimeInterval timeSinceLastInteraction = currentTime - self.lastInteractionTime;
-    
-    // 如果超过2秒没有交互，则半透明
-    if (timeSinceLastInteraction > 2.0) {
-        [UIView animateWithDuration:0.3 animations:^{
-            self.alpha = 0.5;
-        }];
-    }
-}
-- (void)updateLastInteractionTime {
-    self.lastInteractionTime = [[NSDate date] timeIntervalSince1970];
-    
-    // 恢复完全不透明
-    [UIView animateWithDuration:0.2 animations:^{
-        self.alpha = 1.0;
+- (void)fadeToTransparent {
+    [UIView animateWithDuration:0.3 animations:^{
+        self.alpha = 0.5;
     }];
 }
+- (void)loadIcons {
+    // 尝试从文件加载图标
+    NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *iconPath = [documentsPath stringByAppendingPathComponent:@"Qingping.png"];
+    UIImage *customIcon = [UIImage imageWithContentsOfFile:iconPath];
+    
+    if (customIcon) {
+        self.showIcon = customIcon;
+        self.hideIcon = customIcon;
+    } else {
+        // 如果文件不存在，使用默认文本
+        [self setTitle:@"显示" forState:UIControlStateNormal];
+        [self setTitle:@"隐藏" forState:UIControlStateSelected];
+    }
+}
 - (void)handlePan:(UIPanGestureRecognizer *)gesture {
-    [self updateLastInteractionTime];
+    // 恢复完全不透明
+    self.alpha = 1.0;
     
     CGPoint translation = [gesture translationInView:self.superview];
     CGPoint newCenter = CGPointMake(self.center.x + translation.x, self.center.y + translation.y);
@@ -194,12 +155,16 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     
     if (gesture.state == UIGestureRecognizerStateEnded) {
         // 保存按钮位置
-        [[NSUserDefaults standardUserDefaults] setObject:NSStringFromCGPoint(self.center) forKey:lastButtonPositionKey];
+        [[NSUserDefaults standardUserDefaults] setObject:NSStringFromCGPoint(self.center) forKey:@"HideUIButtonPosition"];
         [[NSUserDefaults standardUserDefaults] synchronize];
+        
+        // 设置自动半透明
+        [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(fadeToTransparent) userInfo:nil repeats:NO];
     }
 }
 - (void)handleTap {
-    [self updateLastInteractionTime];
+    // 恢复完全不透明
+    self.alpha = 1.0;
     
     if (isAppInTransition) {
         return;
@@ -208,60 +173,46 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     if (!self.isElementsHidden) {
         // 隐藏UI元素
         [self hideUIElements];
-        if (!self.buttonImage) {
-            [self setTitle:@"显示" forState:UIControlStateNormal];
-        }
+        self.selected = YES;
     } else {
         // 直接强制恢复所有UI元素
         forceResetAllUIElements();
         self.isElementsHidden = NO;
         [self.hiddenViewsList removeAllObjects];
-        if (!self.buttonImage) {
-            [self setTitle:@"隐藏" forState:UIControlStateNormal];
-        }
+        self.selected = NO;
     }
+    
+    // 设置自动半透明
+    [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(fadeToTransparent) userInfo:nil repeats:NO];
 }
 - (void)handleLongPress:(UILongPressGestureRecognizer *)gesture {
-    [self updateLastInteractionTime];
+    // 恢复完全不透明
+    self.alpha = 1.0;
     
     if (gesture.state == UIGestureRecognizerStateBegan) {
-        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"设置"
-                                                                                 message:nil
-                                                                          preferredStyle:UIAlertControllerStyleActionSheet];
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"设置" message:nil preferredStyle:UIAlertControllerStyleActionSheet];
         
-        // 切换全局/单视频模式
-        BOOL currentMode = [[NSUserDefaults standardUserDefaults] boolForKey:globalEffectKey];
-        NSString *modeTitle = currentMode ? @"切换到单视频模式" : @"切换到全局模式";
-        
-        UIAlertAction *toggleModeAction = [UIAlertAction actionWithTitle:modeTitle
-                                                                   style:UIAlertActionStyleDefault
-                                                                 handler:^(UIAlertAction * _Nonnull action) {
-            // 切换模式
-            [[NSUserDefaults standardUserDefaults] setBool:!currentMode forKey:globalEffectKey];
+        [alertController addAction:[UIAlertAction actionWithTitle:@"全局生效" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"GlobalEffect"];
             [[NSUserDefaults standardUserDefaults] synchronize];
-        }];
+        }]];
         
-        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"取消"
-                                                               style:UIAlertActionStyleCancel
-                                                             handler:nil];
+        [alertController addAction:[UIAlertAction actionWithTitle:@"单个视频生效" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"GlobalEffect"];
+            [[NSUserDefaults standardUserDefaults] synchronize];
+        }]];
         
-        [alertController addAction:toggleModeAction];
-        [alertController addAction:cancelAction];
+        [alertController addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
         
-        // 获取当前的UIViewController
-        UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
-        while (topController.presentedViewController) {
-            topController = topController.presentedViewController;
+        UIViewController *topViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
+        while (topViewController.presentedViewController) {
+            topViewController = topViewController.presentedViewController;
         }
-        
-        // 在iPad上需要设置弹出位置
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            alertController.popoverPresentationController.sourceView = self;
-            alertController.popoverPresentationController.sourceRect = self.bounds;
-        }
-        
-        [topController presentViewController:alertController animated:YES completion:nil];
+        [topViewController presentViewController:alertController animated:YES completion:nil];
     }
+    
+    // 设置自动半透明
+    [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(fadeToTransparent) userInfo:nil repeats:NO];
 }
 - (void)hideUIElements {
     NSArray *viewClassStrings = @[
@@ -319,11 +270,19 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     // 重置状态
     self.isElementsHidden = NO;
     [self.hiddenViewsList removeAllObjects];
-    if (!self.buttonImage) {
-        [self setTitle:@"隐藏" forState:UIControlStateNormal];
-    }
+    self.selected = NO;
 }
 @end
+// 重新应用隐藏效果的函数
+static void reapplyHidingToAllElements(HideUIButton *button) {
+    if (!button || !button.isElementsHidden) return;
+    
+    // 先恢复所有元素
+    forceResetAllUIElements();
+    
+    // 然后重新隐藏
+    [button hideUIElements];
+}
 // 监控视图转换状态
 %hook UIViewController
 - (void)viewWillAppear:(BOOL)animated {
@@ -336,7 +295,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
         // 视图出现后，如果按钮处于隐藏状态，重新应用隐藏效果
         // 这解决了视图复用导致的元素重新出现问题
         if (hideButton && hideButton.isElementsHidden) {
-            Button);
+            reapplyHidingToAllElements(hideButton);
         }
     });
 }
@@ -345,7 +304,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     isAppInTransition = YES;
     
     if (hideButton && hideButton.isElementsHidden) {
-        BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:globalEffectKey];
+        BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
         if (!isGlobalEffect) {
             // 如果不是全局模式，在视图消失时重置状态
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -366,7 +325,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     
     // 视频切换时，如果按钮处于隐藏状态，重新应用隐藏效果
     if (hideButton && hideButton.isElementsHidden) {
-        BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:globalEffectKey];
+        BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
         
         if (isGlobalEffect) {
             // 如果是全局模式，则重新应用隐藏效果
@@ -402,7 +361,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
             hideButton = [[HideUIButton alloc] initWithFrame:CGRectMake(0, 0, 50, 50)];
             
             // 从保存的位置恢复按钮位置，如果没有保存过，则放在屏幕右侧中心
-            NSString *savedPositionString = [[NSUserDefaults standardUserDefaults] objectForKey:lastButtonPositionKey];
+            NSString *savedPositionString = [[NSUserDefaults standardUserDefaults] objectForKey:@"HideUIButtonPosition"];
             if (savedPositionString) {
                 hideButton.center = CGPointFromString(savedPositionString);
             } else {
