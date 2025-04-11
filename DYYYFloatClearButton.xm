@@ -72,14 +72,11 @@ static void forceResetAllUIElements() {
         }
     }
 }
-// 重新应用隐藏效果的函数
+// 重新应用隐藏效果的函数，移除延迟
 static void reapplyHidingToAllElements(HideUIButton *button) {
     if (!button || !button.isElementsHidden) return;
-    
     dispatch_async(dispatch_get_main_queue(), ^{
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [button hideUIElements];
-        });
+        [button hideUIElements];
     });
 }
 @implementation HideUIButton
@@ -110,13 +107,13 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 }
 - (void)startPeriodicCheck {
     [self.checkTimer invalidate];
-    self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 
+    self.checkTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 
                                                      repeats:YES 
                                                        block:^(NSTimer *timer) {
         if (self.isElementsHidden) {
             BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
             if (isGlobalEffect) {
-                reapplyHidingToAllElements(self);
+                [self hideUIElements];
             }
         }
     }];
@@ -246,9 +243,13 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 - (void)prepareForReuse {
     %orig;
     if (hideButton && hideButton.isElementsHidden) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            reapplyHidingToAllElements(hideButton);
-        });
+        [hideButton hideUIElements];
+    }
+}
+- (void)willDisplayCell {
+    %orig;
+    if (hideButton && hideButton.isElementsHidden) {
+        [hideButton hideUIElements];
     }
 }
 %end
@@ -256,9 +257,13 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 - (void)setModel:(id)model {
     %orig;
     if (hideButton && hideButton.isElementsHidden) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            reapplyHidingToAllElements(hideButton);
-        });
+        [hideButton hideUIElements];
+    }
+}
+- (void)willDisplayCell {
+    %orig;
+    if (hideButton && hideButton.isElementsHidden) {
+        [hideButton hideUIElements];
     }
 }
 %end
@@ -266,12 +271,11 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 - (void)viewWillAppear:(BOOL)animated {
     %orig;
     isAppInTransition = YES;
-    
+    if (hideButton && hideButton.isElementsHidden) {
+        [hideButton hideUIElements];
+    }
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         isAppInTransition = NO;
-        if (hideButton && hideButton.isElementsHidden) {
-            reapplyHidingToAllElements(hideButton);
-        }
     });
 }
 - (void)viewWillDisappear:(BOOL)animated {
@@ -281,9 +285,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     if (hideButton && hideButton.isElementsHidden) {
         BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
         if (!isGlobalEffect) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [hideButton safeResetState];
-            });
+            [hideButton safeResetState];
         }
     }
     
@@ -294,24 +296,20 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
 %end
 %hook AWEFeedContainerViewController
 - (void)aweme:(id)arg1 currentIndexDidChange:(NSInteger)arg2 {
-    %orig;
-    
     if (hideButton && hideButton.isElementsHidden) {
         BOOL isGlobalEffect = [[NSUserDefaults standardUserDefaults] boolForKey:@"GlobalEffect"];
-        
         if (isGlobalEffect) {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                reapplyHidingToAllElements(hideButton);
-            });
-            
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                reapplyHidingToAllElements(hideButton);
-            });
+            [hideButton hideUIElements];
         } else {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [hideButton safeResetState];
-            });
+            [hideButton safeResetState];
         }
+    }
+    %orig;
+}
+- (void)viewWillLayoutSubviews {
+    %orig;
+    if (hideButton && hideButton.isElementsHidden) {
+        [hideButton hideUIElements];
     }
 }
 %end
@@ -351,6 +349,7 @@ static void reapplyHidingToAllElements(HideUIButton *button) {
     return result;
 }
 %end
+
 %ctor {
     signal(SIGSEGV, SIG_IGN);
 }
