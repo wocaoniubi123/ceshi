@@ -418,10 +418,13 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	%orig(center);
 }
 
-- (void)layoutSubviews {
-	%orig;
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisHiddenEntry"]) {
-		[self removeFromSuperview];
+- (void)setHidden:(BOOL)hidden {
+     BOOL shouldHide = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisHiddenEntry"];
+     
+     if (shouldHide) {
+         %orig(shouldHide);
+     } else {
+         %orig(hidden);
 	}
 }
 
