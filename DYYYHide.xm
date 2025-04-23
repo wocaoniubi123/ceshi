@@ -10,6 +10,15 @@
 }
 %end
 
+// 隐藏虾线
+%hook AWELoadingAndVolumeView
+- (void)layoutSubviews {
+    [self removeFromSuperview];
+    return;
+}
+
+%end
+
 // 隐藏头像加号和透明
 %hook LOTAnimationView
 - (void)layoutSubviews {
