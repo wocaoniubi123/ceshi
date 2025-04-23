@@ -1366,13 +1366,6 @@
 }
 
 %end
-
-%ctor {
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
-		%init;
-	}
-}
-
 // 隐藏分隔虾线
 				for (UIView *subview in self.subviews) {
 					if (![subview isKindOfClass:[UIView class]]) continue;
@@ -1404,3 +1397,9 @@
 }
 
 %end
+
+%ctor {
+	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
+		%init;
+	}
+}
