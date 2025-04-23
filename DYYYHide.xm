@@ -1367,13 +1367,16 @@
 
 %end
 
-//隐藏横线
+//隐藏清屏横线
 %hook AWELoadingAndVolumeView
 
-// Hook 布局方法
 - (void)layoutSubviews {
-    %orig; // 先调用原始布局逻辑
-    self.hidden = YES;
+    %orig; // 调用原始实现
+    
+    // 根据开关控制隐藏
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideQpHengxian"]) {
+        self.hidden = YES;
+    }
 }
 
 %end
