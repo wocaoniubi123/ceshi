@@ -1381,8 +1381,6 @@
 
 %end
 
-#import <UIKit/UIKit.h>
-
 // 隐藏评论框占位符
 %hook AWETextViewInternal
 
@@ -1392,6 +1390,8 @@
     self.hidden = YES; // 强制隐藏
     return self;
 }
+
+%end
 
 %ctor {
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
