@@ -769,6 +769,19 @@
 
 %end
 
+%hook AWEButton
+
+- (void)layoutSubviews {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideInteractionSearch"]) {
+        self.hidden = YES;
+        [self removeFromSuperview];
+        return;
+    }
+    %orig;
+}
+
+%end
+
 // 隐藏视频滑条
 %hook AWEStoryProgressSlideView
 
