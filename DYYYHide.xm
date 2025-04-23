@@ -10,6 +10,38 @@
 }
 %end
 
+// 隐藏分隔虾线
+				for (UIView *subview in self.subviews) {
+					if (![subview isKindOfClass:[UIView class]]) continue;
+					if (subview.frame.size.height <= 0.5 && subview.frame.size.width > 300) {
+						subview.hidden = YES;
+						CGRect frame = subview.frame;
+						frame.size.height = 0;
+						subview.frame = frame;
+						subview.alpha = 0;
+					}
+				}
+			}
+// 隐藏分割虾线结束
+}
+
+%end
+
+// 隐藏双指缩放虾线
+%hook AWELoadingAndVolumeView
+
+- (void)layoutSubviews {
+	%orig;
+
+	if ([self respondsToSelector:@selector(removeFromSuperview)]) {
+		[self removeFromSuperview];
+	}
+	self.hidden = YES;
+	return;
+}
+
+%end
+
 // 隐藏头像加号和透明
 %hook LOTAnimationView
 - (void)layoutSubviews {
@@ -1363,37 +1395,6 @@
 			parentView = parentView.superview;
 		}
 	}
-}
-
-%end
-// 隐藏分隔虾线
-				for (UIView *subview in self.subviews) {
-					if (![subview isKindOfClass:[UIView class]]) continue;
-					if (subview.frame.size.height <= 0.5 && subview.frame.size.width > 300) {
-						subview.hidden = YES;
-						CGRect frame = subview.frame;
-						frame.size.height = 0;
-						subview.frame = frame;
-						subview.alpha = 0;
-					}
-				}
-			}
-// 隐藏分割虾线结束
-}
-
-%end
-
-// 隐藏双指缩放虾线
-%hook AWELoadingAndVolumeView
-
-- (void)layoutSubviews {
-	%orig;
-
-	if ([self respondsToSelector:@selector(removeFromSuperview)]) {
-		[self removeFromSuperview];
-	}
-	self.hidden = YES;
-	return;
 }
 
 %end
