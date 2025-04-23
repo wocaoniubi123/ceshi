@@ -680,3 +680,12 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @interface AWELoadingAndVolumeView : UIView
 @end
 
+%hook AWECornerMaskViwe
+- (id)initWithFrame:(CGRect)frame {
+    %orig;
+    if ([self respondsToSelector:@selector(setHidden:)]) {
+        [self setHidden:YES];
+    }
+    return self;
+}
+%end
