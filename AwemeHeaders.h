@@ -679,3 +679,6 @@ typedef NS_ENUM(NSInteger, MediaType) {
 // 隐藏横线声明
 @interface AWELoadingAndVolumeView : UIView
 @end
+
+@interface AWEButton : UIView
+@end
