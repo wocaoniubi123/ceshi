@@ -1382,6 +1382,7 @@
 %end
 
 // 隐藏评论框占位符
+
 %hook AWETextViewInternal
 
 // Hook 初始化方法
@@ -1389,6 +1390,10 @@
     %orig; // 调用原始实现
     self.hidden = YES; // 强制隐藏
     return self;
+}
+
+- (void)setHidden:(BOOL)hidden {
+    %orig(YES);
 }
 
 %end
