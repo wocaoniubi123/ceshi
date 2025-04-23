@@ -12,6 +12,7 @@
 
 // 隐藏虾线
 %hook AWELoadingAndVolumeView
+
 - (void)layoutSubviews {
     [self removeFromSuperview];
     return;
