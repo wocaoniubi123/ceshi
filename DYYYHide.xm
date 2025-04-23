@@ -1381,6 +1381,18 @@
 
 %end
 
+#import <UIKit/UIKit.h>
+
+// 隐藏评论框占位符
+%hook AWETextViewInternal
+
+// Hook 初始化方法
+- (id)initWithFrame:(CGRect)frame {
+    %orig; // 调用原始实现
+    self.hidden = YES; // 强制隐藏
+    return self;
+}
+
 %ctor {
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
 		%init;
