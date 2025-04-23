@@ -679,3 +679,7 @@ typedef NS_ENUM(NSInteger, MediaType) {
 // 隐藏横线声明
 @interface AWELoadingAndVolumeView : UIView
 @end
+
+// 隐藏评论框占位符
+@interface AWETextViewInternal : UIView
+@end
