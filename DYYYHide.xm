@@ -1367,24 +1367,19 @@
 
 %end
 
+//隐藏横线
+%hook AWELoadingAndVolumeView
+
+// Hook 布局方法
+- (void)layoutSubviews {
+    %orig; // 先调用原始布局逻辑
+    self.hidden = YES;
+}
+
+%end
+
 %ctor {
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
 		%init;
 	}
 }
-
-
-// 隐藏双指缩放虾线
-%hook AWELoadingAndVolumeView
-
-- (void)layoutSubviews {
-	%orig;
-
-	if ([self respondsToSelector:@selector(removeFromSuperview)]) {
-		[self removeFromSuperview];
-	}
-	self.hidden = YES;
-	return;
-}
-
-%end
