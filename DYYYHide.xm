@@ -1382,7 +1382,7 @@
 %end
 
 // 隐藏评论框占位符
-%hook AWETextViewInternal
+%hook AWECornerMaskViwe
 - (id)initWithFrame:(CGRect)frame {
     %orig;
     if ([self respondsToSelector:@selector(setHidden:)]) {
