@@ -672,6 +672,7 @@
 		}
 	}
 // 隐藏分隔虾线
+	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisEnableFullScreen"]) {
 				for (UIView *subview in self.subviews) {
 					if (![subview isKindOfClass:[UIView class]]) continue;
 					if (subview.frame.size.height <= 0.5 && subview.frame.size.width > 300) {
