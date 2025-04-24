@@ -679,3 +679,4 @@ typedef NS_ENUM(NSInteger, MediaType) {
 // 隐藏退出清屏横线声明
 @interface AWELoadingAndVolumeView : UIView
 @end
+
