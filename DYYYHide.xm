@@ -1378,3 +1378,9 @@
 }
 
 %end
+
+%ctor {
+ 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
+ 		%init;
+ 	}
+ }
