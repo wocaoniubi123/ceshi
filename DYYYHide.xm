@@ -1208,8 +1208,6 @@
 
 %end
 
-// 隐藏搜同款
-
 // 隐藏礼物展馆
 %hook BDXWebView
 - (void)layoutSubviews {
@@ -1381,19 +1379,3 @@
 
 %end
 
-// 隐藏评论框占位符
-%hook AWECornerMaskViwe
-- (id)initWithFrame:(CGRect)frame {
-    %orig;
-    if ([self respondsToSelector:@selector(setHidden:)]) {
-        [self setHidden:YES];
-    }
-    return self;
-}
-%end
-
-%ctor {
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
-		%init;
-	}
-}
