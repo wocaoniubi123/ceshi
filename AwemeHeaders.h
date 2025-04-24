@@ -676,9 +676,6 @@ typedef NS_ENUM(NSInteger, MediaType) {
 - (void)applyCustomProgressStyle;
 @end
 
-// 隐藏横线声明
+// 隐藏退出清屏横线声明
 @interface AWELoadingAndVolumeView : UIView
-@end
-
-@interface AWECornerMaskViwe : UIView
 @end
