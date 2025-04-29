@@ -322,16 +322,64 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 %hook UIWindow
 - (instancetype)initWithFrame:(CGRect)frame {
-	UIWindow *window = %orig(frame);
-	if (window) {
-		UILongPressGestureRecognizer *doubleFingerLongPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleDoubleFingerLongPressGesture:)];
-		doubleFingerLongPressGesture.numberOfTouchesRequired = 2;
-		[window addGestureRecognizer:doubleFingerLongPressGesture];
-	}
-	return window;
+    UIWindow *window = %orig(frame);
+    if (window) {
+        // 替换为双指双击手势
+        UITapGestureRecognizer *doubleFingerDoubleTapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleDoubleFingerDoubleTapGesture:)];
+        doubleFingerDoubleTapGesture.numberOfTouchesRequired = 2;
+        doubleFingerDoubleTapGesture.numberOfTapsRequired = 2;
+        [window addGestureRecognizer:doubleFingerDoubleTapGesture];
+    }
+    return window;
 }
 
 %new
+// 新增的双指双击处理方法
+- (void)handleDoubleFingerDoubleTapGesture:(UITapGestureRecognizer *)gesture {
+    if (gesture.state == UIGestureRecognizerStateEnded) {
+        UIViewController *rootViewController = self.rootViewController;
+        if (rootViewController) {
+            UIViewController *settingVC = [[DYYYSettingViewController alloc] init];
+            if (settingVC) {
+                BOOL isIPad = UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad;
+                if (@available(iOS 15.0, *)) {
+                    if (!isIPad) {
+                        settingVC.modalPresentationStyle = UIModalPresentationPageSheet;
+                    } else {
+                        settingVC.modalPresentationStyle = UIModalPresentationFullScreen;
+                    }
+                } else {
+                    settingVC.modalPresentationStyle = UIModalPresentationFullScreen;
+                }
+                if (settingVC.modalPresentationStyle == UIModalPresentationFullScreen) {
+                    UIButton *closeButton = [UIButton buttonWithType:UIButtonTypeSystem];
+                    [closeButton setTitle:@"关闭" forState:UIControlStateNormal];
+                    closeButton.translatesAutoresizingMaskIntoConstraints = NO;
+                    [settingVC.view addSubview:closeButton];
+                    [NSLayoutConstraint activateConstraints:@[
+                        [closeButton.trailingAnchor constraintEqualToAnchor:settingVC.view.trailingAnchor constant:-10],
+                        [closeButton.topAnchor constraintEqualToAnchor:settingVC.view.topAnchor constant:40],
+                        [closeButton.widthAnchor constraintEqualToConstant:80],
+                        [closeButton.heightAnchor constraintEqualToConstant:40]
+                    ]];
+                    [closeButton addTarget:self action:@selector(closeSettings:) forControlEvents:UIControlEventTouchUpInside];
+                }
+                UIView *handleBar = [[UIView alloc] init];
+                handleBar.backgroundColor = [UIColor whiteColor];
+                handleBar.layer.cornerRadius = 2.5;
+                handleBar.translatesAutoresizingMaskIntoConstraints = NO;
+                [settingVC.view addSubview:handleBar];
+                [NSLayoutConstraint activateConstraints:@[
+                    [handleBar.centerXAnchor constraintEqualToAnchor:settingVC.view.centerXAnchor],
+                    [handleBar.topAnchor constraintEqualToAnchor:settingVC.view.topAnchor constant:8],
+                    [handleBar.widthAnchor constraintEqualToConstant:40],
+                    [handleBar.heightAnchor constraintEqualToConstant:5]
+                ]];
+                [rootViewController presentViewController:settingVC animated:YES completion:nil];
+            }
+        }
+    }
+}
 - (void)handleDoubleFingerLongPressGesture:(UILongPressGestureRecognizer *)gesture {
 	if (gesture.state == UIGestureRecognizerStateBegan) {
 		UIViewController *rootViewController = self.rootViewController;
