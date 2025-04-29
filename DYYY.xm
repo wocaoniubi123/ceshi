@@ -1898,6 +1898,11 @@ static CGFloat currentScale = 1.0;
 			return NO;
 		}
 	}
+	if ([self.accessibilityLabel isEqualToString:@"消息"]) {
+		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisEnableFullScreen"]) {
+			return NO;
+		}
+	}
 	return %orig;
 }
 
