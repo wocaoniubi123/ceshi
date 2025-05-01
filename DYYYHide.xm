@@ -9,7 +9,21 @@
 	%orig(hidden);
 }
 %end
-
+%hook AWEPlayInteractionViewController
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    if ([self isKindOfClass:NSClassFromString(@"AWECommentInputViewSwiftImpl.CommentInputContainerView")]) {
+            self.hidden = YES;
+            // 执行全屏显示逻辑，这里假设全屏显示是调整视图大小和位置
+            UIViewController *vc = [self firstAvailableUIViewController];
+            if ([vc isKindOfClass:NSClassFromString(@"AWEPlayInteractionViewController")]) {
+                CGRect frame = self.superview.frame;
+                self.frame = frame;
+                // 可以根据需要进一步调整子视图的布局等
+            }
+    }
+}
+%end
 // 隐藏头像加号和透明
 %hook LOTAnimationView
 - (void)layoutSubviews {
